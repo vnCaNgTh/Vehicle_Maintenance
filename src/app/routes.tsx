@@ -6,6 +6,9 @@ import { VehiclesPage } from '../features/vehicles/pages/VehiclesPage'
 import { AddVehiclePage } from '../features/vehicles/pages/AddVehiclePage'
 import { EditVehiclePage } from '../features/vehicles/pages/EditVehiclePage'
 import { VehicleDetailPage } from '../features/vehicles/pages/VehicleDetailPage'
+import { AddMaintenancePage } from '../features/maintenance/pages/AddMaintenancePage'
+import { EditMaintenancePage } from '../features/maintenance/pages/EditMaintenancePage'
+import { MaintenanceDetailPage } from '../features/maintenance/pages/MaintenanceDetailPage'
 
 export const router = createBrowserRouter([
   {
@@ -17,6 +20,9 @@ export const router = createBrowserRouter([
       { path: 'vehicles/new', element: <AddVehiclePage /> },
       { path: 'vehicles/:id', element: <VehicleDetailPage /> },
       { path: 'vehicles/:id/edit', element: <EditVehiclePage /> },
+      { path: 'vehicles/:vehicleId/maintenance/new', element: <AddMaintenancePage /> },
+      { path: 'vehicles/:vehicleId/maintenance/:maintenanceId', element: <MaintenanceDetailPage /> },
+      { path: 'vehicles/:vehicleId/maintenance/:maintenanceId/edit', element: <EditMaintenancePage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
   },

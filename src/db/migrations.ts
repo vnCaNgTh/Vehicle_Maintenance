@@ -11,10 +11,17 @@ export function applyMigrations(db: Dexie): void {
     vehicles: 'id, updatedAt',
   })
 
+  // v2 (M2): add maintenance records. The vehicles store/indexes are
+  // unchanged, so existing vehicle data is preserved automatically.
+  db.version(2).stores({
+    vehicles: 'id, updatedAt',
+    maintenanceRecords: 'id, vehicleId, maintenanceDate, updatedAt',
+  })
+
   // Future versions will be appended here, e.g.:
-  // db.version(2).stores({
+  // db.version(3).stores({
   //   vehicles: 'id, updatedAt',
-  //   maintenanceRecords: 'id, vehicleId, updatedAt',
+  //   maintenanceRecords: 'id, vehicleId, maintenanceDate, updatedAt',
   //   maintenanceImages: 'id, maintenanceRecordId',
   // })
 }

@@ -16,7 +16,7 @@
   font-size: 1.4rem;
 }
 
-.plate {
+.cost {
   font-weight: 700;
   color: var(--color-accent);
 }
@@ -38,12 +38,17 @@
 
 .row dt {
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .row dd {
   margin: 0;
   font-weight: 600;
   text-align: right;
+}
+
+.description {
+  white-space: pre-wrap;
 }
 
 .actions {
@@ -75,52 +80,17 @@
   color: var(--color-danger);
 }
 
-.maintenanceSection {
-  padding-top: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.maintenanceHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.maintenanceHeader h2 {
-  font-size: 1.05rem;
-  margin: 0;
-}
-
-.addMaintenanceButton {
+.backLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
-  padding: 0 0.85rem;
+  min-height: 44px;
+  padding: 0 1.25rem;
   border-radius: 10px;
   background: var(--color-accent);
   color: #fff;
   font-weight: 700;
-  font-size: 0.85rem;
   text-decoration: none;
-  white-space: nowrap;
-}
-
-.maintenanceSection p {
-  margin: 0;
-  color: var(--color-text-muted);
-}
-
-.maintenanceList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 
 .errorBanner {

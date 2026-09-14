@@ -5,13 +5,18 @@ import { EmptyState } from '../../../components/common/EmptyState'
 import { ConfirmDialog } from '../../../components/common/ConfirmDialog'
 import { deleteVehicle, getVehicleById, VehicleRepositoryError } from '../vehicle.repository'
 import type { Vehicle } from '../vehicle.types'
+import { getMaintenanceByVehicleId, MaintenanceRepositoryError } from '../../maintenance/maintenance.repository'
+import type { MaintenanceRecord } from '../../maintenance/maintenance.types'
+import { MaintenanceCard } from '../../maintenance/components/MaintenanceCard'
 import styles from './VehicleDetailPage.module.css'
 
 export function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [vehicle, setVehicle] = useState<Vehicle | null | undefined>(undefined)
+  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [maintenanceError, setMaintenanceError] = useState<string | null>(null)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -35,6 +40,29 @@ export function VehicleDetailPage() {
       cancelled = true
     }
   }, [id])
+
+  useEffect(() => {
+    if (!id || !vehicle) {
+      return
+    }
+
+    let cancelled = false
+    getMaintenanceByVehicleId(id)
+      .then((records) => {
+        if (!cancelled) setMaintenanceRecords(records)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setMaintenanceError(
+          err instanceof MaintenanceRepositoryError ? err.message : 'Could not load maintenance history.',
+        )
+        setMaintenanceRecords([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [id, vehicle])
 
   async function handleDelete() {
     if (!vehicle) return
@@ -101,8 +129,28 @@ export function VehicleDetailPage() {
       </div>
 
       <section className={styles.maintenanceSection}>
-        <h2>Maintenance history</h2>
-        <p>No maintenance records yet.</p>
+        <div className={styles.maintenanceHeader}>
+          <h2>Maintenance history</h2>
+          <Link to={`/vehicles/${vehicle.id}/maintenance/new`} className={styles.addMaintenanceButton}>
+            + Add maintenance
+          </Link>
+        </div>
+
+        {maintenanceError && <p className={styles.errorBanner}>{maintenanceError}</p>}
+
+        {maintenanceRecords === null && !maintenanceError && <LoadingState label="Loading maintenance history…" />}
+
+        {maintenanceRecords !== null && maintenanceRecords.length === 0 && <p>No maintenance records yet.</p>}
+
+        {maintenanceRecords !== null && maintenanceRecords.length > 0 && (
+          <ul className={styles.maintenanceList}>
+            {maintenanceRecords.map((record) => (
+              <li key={record.id}>
+                <MaintenanceCard record={record} />
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <ConfirmDialog
