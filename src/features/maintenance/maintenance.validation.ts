@@ -1,10 +1,11 @@
 import type { MaintenanceFormInput } from './maintenance.types'
+import type { MaintenanceRecordItem } from './maintenanceItem.types'
 
 export interface MaintenanceValidationErrors {
   maintenanceDate?: string
-  description?: string
   odometer?: string
   cost?: string
+  items?: string
 }
 
 export interface MaintenanceValidationResult {
@@ -20,10 +21,13 @@ export interface MaintenanceValidationResult {
 }
 
 /**
- * Validates and normalizes maintenance form input. Description is
- * intentionally free-form (no format restriction) beyond being non-empty.
+ * Validates and normalizes maintenance form input. Description/note is
+ * optional free text; at least one selected item is required instead.
  */
-export function validateMaintenanceForm(input: MaintenanceFormInput): MaintenanceValidationResult {
+export function validateMaintenanceForm(
+  input: MaintenanceFormInput,
+  items: MaintenanceRecordItem[],
+): MaintenanceValidationResult {
   const maintenanceDate = input.maintenanceDate.trim()
   const description = input.description.trim()
 
@@ -36,8 +40,8 @@ export function validateMaintenanceForm(input: MaintenanceFormInput): Maintenanc
     errors.maintenanceDate = 'Maintenance date is required.'
   }
 
-  if (!description) {
-    errors.description = 'Description is required.'
+  if (items.length === 0) {
+    errors.items = 'Select at least one maintenance item.'
   }
 
   if (input.odometer === '' || input.odometer === null || input.odometer === undefined) {

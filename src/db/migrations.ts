@@ -18,10 +18,14 @@ export function applyMigrations(db: Dexie): void {
     maintenanceRecords: 'id, vehicleId, maintenanceDate, updatedAt',
   })
 
-  // Future versions will be appended here, e.g.:
-  // db.version(3).stores({
-  //   vehicles: 'id, updatedAt',
-  //   maintenanceRecords: 'id, vehicleId, maintenanceDate, updatedAt',
-  //   maintenanceImages: 'id, maintenanceRecordId',
-  // })
+  // v3 (M3): add the maintenance item checklist/catalog. vehicles and
+  // maintenanceRecords index strings are unchanged, so existing data in
+  // those stores is left untouched. The new `items` array on
+  // MaintenanceRecord is not indexed, so it needs no store change here -
+  // old records simply lack the field and are normalized when read.
+  db.version(3).stores({
+    vehicles: 'id, updatedAt',
+    maintenanceRecords: 'id, vehicleId, maintenanceDate, updatedAt',
+    maintenanceItemDefinitions: 'id, isCustom',
+  })
 }

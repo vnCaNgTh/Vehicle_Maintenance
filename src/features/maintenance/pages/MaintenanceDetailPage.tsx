@@ -116,10 +116,29 @@ export function MaintenanceDetailPage() {
           <dt>Odometer</dt>
           <dd>{record.odometer.toLocaleString()} km</dd>
         </div>
-        <div className={styles.row}>
-          <dt>Description</dt>
-          <dd className={styles.description}>{record.description}</dd>
-        </div>
+        {record.items.length > 0 && (
+          <div className={styles.row}>
+            <dt>Items</dt>
+            <dd>
+              <ul className={styles.itemsList}>
+                {record.items.map((item) => (
+                  <li key={item.itemId}>
+                    {item.name}
+                    {item.reminderEnabled && item.nextOdo !== undefined && (
+                      <span className={styles.itemReminder}> · Next: {item.nextOdo.toLocaleString()} km</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        )}
+        {record.description && (
+          <div className={styles.row}>
+            <dt>Note</dt>
+            <dd className={styles.description}>{record.description}</dd>
+          </div>
+        )}
       </dl>
 
       <div className={styles.actions}>

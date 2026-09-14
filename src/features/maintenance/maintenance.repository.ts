@@ -1,5 +1,6 @@
 import { db } from '../../db/database'
 import type { MaintenanceRecord } from './maintenance.types'
+import type { MaintenanceRecordItem } from './maintenanceItem.types'
 
 /**
  * Thrown by repository functions so UI code can show a friendly message
@@ -30,6 +31,22 @@ function sortMaintenanceRecords(records: MaintenanceRecord[]): MaintenanceRecord
   })
 }
 
+/** Backfills `items` for M1/M2 records saved before the checklist existed. */
+function normalizeMaintenanceRecord(record: MaintenanceRecord): MaintenanceRecord {
+  return { ...record, items: record.items ?? [] }
+}
+
+/** Recomputes nextOdo from structured fields only, never from free text. */
+function computeRecordItems(items: MaintenanceRecordItem[], odometer: number): MaintenanceRecordItem[] {
+  return items.map((item) => ({
+    itemId: item.itemId,
+    name: item.name,
+    reminderEnabled: item.reminderEnabled,
+    intervalKm: item.reminderEnabled ? item.intervalKm : undefined,
+    nextOdo: item.reminderEnabled && item.intervalKm !== undefined ? odometer + item.intervalKm : undefined,
+  }))
+}
+
 /** Raises the vehicle's current odometer, never lowers it. */
 async function bumpVehicleOdometerIfHigher(vehicleId: string, odometer: number): Promise<void> {
   const vehicle = await db.vehicles.get(vehicleId)
@@ -41,7 +58,7 @@ async function bumpVehicleOdometerIfHigher(vehicleId: string, odometer: number):
 export async function getMaintenanceByVehicleId(vehicleId: string): Promise<MaintenanceRecord[]> {
   try {
     const records = await db.maintenanceRecords.where('vehicleId').equals(vehicleId).toArray()
-    return sortMaintenanceRecords(records)
+    return sortMaintenanceRecords(records.map(normalizeMaintenanceRecord))
   } catch (error) {
     throw new MaintenanceRepositoryError('Could not load maintenance records for this vehicle.', error)
   }
@@ -49,7 +66,8 @@ export async function getMaintenanceByVehicleId(vehicleId: string): Promise<Main
 
 export async function getMaintenanceById(id: string): Promise<MaintenanceRecord | undefined> {
   try {
-    return await db.maintenanceRecords.get(id)
+    const record = await db.maintenanceRecords.get(id)
+    return record ? normalizeMaintenanceRecord(record) : undefined
   } catch (error) {
     throw new MaintenanceRepositoryError('Could not load this maintenance record.', error)
   }
@@ -61,6 +79,7 @@ export async function createMaintenance(
   const now = new Date().toISOString()
   const record: MaintenanceRecord = {
     ...input,
+    items: computeRecordItems(input.items, input.odometer),
     id: generateId(),
     createdAt: now,
     updatedAt: now,
@@ -87,6 +106,7 @@ export async function createMaintenance(
 export async function updateMaintenance(record: MaintenanceRecord): Promise<MaintenanceRecord> {
   const updatedRecord: MaintenanceRecord = {
     ...record,
+    items: computeRecordItems(record.items, record.odometer),
     updatedAt: new Date().toISOString(),
   }
 

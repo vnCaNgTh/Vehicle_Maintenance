@@ -4,9 +4,15 @@ import { LoadingState } from '../../../components/common/LoadingState'
 import { EmptyState } from '../../../components/common/EmptyState'
 import { MaintenanceForm, type MaintenanceFormValues } from '../components/MaintenanceForm'
 import { getMaintenanceById, updateMaintenance, MaintenanceRepositoryError } from '../maintenance.repository'
+import {
+  addCustomMaintenanceItemToCatalog,
+  getMaintenanceItemCatalog,
+  MaintenanceItemCatalogRepositoryError,
+} from '../maintenanceItemCatalog.repository'
 import { getVehicleById, VehicleRepositoryError } from '../../vehicles/vehicle.repository'
 import type { Vehicle } from '../../vehicles/vehicle.types'
 import type { MaintenanceRecord } from '../maintenance.types'
+import type { MaintenanceItemDefinition } from '../maintenanceItem.types'
 import styles from './MaintenanceFormPage.module.css'
 
 export function EditMaintenancePage() {
@@ -14,6 +20,7 @@ export function EditMaintenancePage() {
   const navigate = useNavigate()
   const [vehicle, setVehicle] = useState<Vehicle | null | undefined>(undefined)
   const [record, setRecord] = useState<MaintenanceRecord | null | undefined>(undefined)
+  const [catalog, setCatalog] = useState<MaintenanceItemDefinition[] | undefined>(undefined)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -23,16 +30,19 @@ export function EditMaintenancePage() {
     }
 
     let cancelled = false
-    Promise.all([getVehicleById(vehicleId), getMaintenanceById(maintenanceId)])
-      .then(([vehicleResult, recordResult]) => {
+    Promise.all([getVehicleById(vehicleId), getMaintenanceById(maintenanceId), getMaintenanceItemCatalog()])
+      .then(([vehicleResult, recordResult, catalogResult]) => {
         if (cancelled) return
         setVehicle(vehicleResult ?? null)
         setRecord(recordResult && recordResult.vehicleId === vehicleId ? recordResult : null)
+        setCatalog(catalogResult)
       })
       .catch((err) => {
         if (cancelled) return
         const message =
-          err instanceof VehicleRepositoryError || err instanceof MaintenanceRepositoryError
+          err instanceof VehicleRepositoryError ||
+          err instanceof MaintenanceRepositoryError ||
+          err instanceof MaintenanceItemCatalogRepositoryError
             ? err.message
             : 'Could not load this maintenance record.'
         setLoadError(message)
@@ -63,7 +73,7 @@ export function EditMaintenancePage() {
     return <EmptyState title="Maintenance record not found" message="No maintenance ID was provided." />
   }
 
-  if (vehicle === undefined || record === undefined) {
+  if (vehicle === undefined || record === undefined || catalog === undefined) {
     return <LoadingState label="Loading maintenance record…" />
   }
 
@@ -92,9 +102,11 @@ export function EditMaintenancePage() {
       <MaintenanceForm
         vehicle={vehicle}
         initialRecord={record}
+        catalog={catalog}
         submitLabel="Save changes"
         onSubmit={handleSubmit}
         onCancel={() => navigate(-1)}
+        onAddCustomItemToCatalog={addCustomMaintenanceItemToCatalog}
       />
     </div>
   )

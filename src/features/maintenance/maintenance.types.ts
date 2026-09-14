@@ -1,10 +1,14 @@
+import type { MaintenanceRecordItem } from './maintenanceItem.types'
+
 export interface MaintenanceRecord {
   id: string
   vehicleId: string
   maintenanceDate: string
   odometer: number
-  description: string
+  /** Optional free-text note. Structured items are the primary content. */
+  description?: string
   cost: number
+  items: MaintenanceRecordItem[]
   createdAt: string
   updatedAt: string
 }

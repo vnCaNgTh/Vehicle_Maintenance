@@ -4,14 +4,21 @@ import { LoadingState } from '../../../components/common/LoadingState'
 import { EmptyState } from '../../../components/common/EmptyState'
 import { MaintenanceForm, type MaintenanceFormValues } from '../components/MaintenanceForm'
 import { createMaintenance, MaintenanceRepositoryError } from '../maintenance.repository'
+import {
+  addCustomMaintenanceItemToCatalog,
+  getMaintenanceItemCatalog,
+  MaintenanceItemCatalogRepositoryError,
+} from '../maintenanceItemCatalog.repository'
 import { getVehicleById, VehicleRepositoryError } from '../../vehicles/vehicle.repository'
 import type { Vehicle } from '../../vehicles/vehicle.types'
+import type { MaintenanceItemDefinition } from '../maintenanceItem.types'
 import styles from './MaintenanceFormPage.module.css'
 
 export function AddMaintenancePage() {
   const { vehicleId } = useParams<{ vehicleId: string }>()
   const navigate = useNavigate()
   const [vehicle, setVehicle] = useState<Vehicle | null | undefined>(undefined)
+  const [catalog, setCatalog] = useState<MaintenanceItemDefinition[] | undefined>(undefined)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -21,13 +28,19 @@ export function AddMaintenancePage() {
     }
 
     let cancelled = false
-    getVehicleById(vehicleId)
-      .then((result) => {
-        if (!cancelled) setVehicle(result ?? null)
+    Promise.all([getVehicleById(vehicleId), getMaintenanceItemCatalog()])
+      .then(([vehicleResult, catalogResult]) => {
+        if (cancelled) return
+        setVehicle(vehicleResult ?? null)
+        setCatalog(catalogResult)
       })
       .catch((err) => {
         if (cancelled) return
-        setLoadError(err instanceof VehicleRepositoryError ? err.message : 'Could not load this vehicle.')
+        const message =
+          err instanceof VehicleRepositoryError || err instanceof MaintenanceItemCatalogRepositoryError
+            ? err.message
+            : 'Could not load this vehicle.'
+        setLoadError(message)
         setVehicle(null)
       })
 
@@ -52,7 +65,7 @@ export function AddMaintenancePage() {
     return <EmptyState title="Vehicle not found" message="No vehicle ID was provided." />
   }
 
-  if (vehicle === undefined) {
+  if (vehicle === undefined || catalog === undefined) {
     return <LoadingState label="Loading vehicle…" />
   }
 
@@ -71,9 +84,11 @@ export function AddMaintenancePage() {
       {submitError && <p className={styles.errorBanner}>{submitError}</p>}
       <MaintenanceForm
         vehicle={vehicle}
+        catalog={catalog}
         submitLabel="Add maintenance"
         onSubmit={handleSubmit}
         onCancel={() => navigate(-1)}
+        onAddCustomItemToCatalog={addCustomMaintenanceItemToCatalog}
       />
     </div>
   )
