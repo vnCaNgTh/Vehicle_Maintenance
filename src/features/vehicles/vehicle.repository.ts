@@ -75,9 +75,18 @@ export async function updateVehicle(vehicle: Vehicle): Promise<Vehicle> {
 
 export async function deleteVehicle(id: string): Promise<void> {
   try {
-    // Isolated so a future cascade-delete of maintenance records/attachments
-    // can be added here without changing callers.
-    await db.vehicles.delete(id)
+    // One transaction for the whole cascade - photos, then their maintenance
+    // records, then the vehicle - scoped to this vehicle's own records only,
+    // so a rollback on any failure leaves everything (including other
+    // vehicles' data) untouched.
+    await db.transaction('rw', db.vehicles, db.maintenanceRecords, db.maintenanceImages, async () => {
+      const maintenanceIds = await db.maintenanceRecords.where('vehicleId').equals(id).primaryKeys()
+      if (maintenanceIds.length > 0) {
+        await db.maintenanceImages.where('maintenanceId').anyOf(maintenanceIds).delete()
+        await db.maintenanceRecords.bulkDelete(maintenanceIds)
+      }
+      await db.vehicles.delete(id)
+    })
   } catch (error) {
     throw new VehicleRepositoryError('Could not delete this vehicle.', error)
   }
