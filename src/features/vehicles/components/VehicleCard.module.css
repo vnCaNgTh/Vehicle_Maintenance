@@ -1,0 +1,40 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.card:active {
+  background: var(--color-surface-alt);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.type {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.plate {
+  font-weight: 600;
+  color: var(--color-accent);
+  letter-spacing: 0.03em;
+}
+
+.details {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
