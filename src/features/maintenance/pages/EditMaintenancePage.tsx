@@ -9,10 +9,18 @@ import {
   getMaintenanceItemCatalog,
   MaintenanceItemCatalogRepositoryError,
 } from '../maintenanceItemCatalog.repository'
+import {
+  addImage,
+  deleteImage,
+  getImagesByMaintenanceId,
+  MaintenanceImageRepositoryError,
+} from '../maintenanceImage.repository'
+import { processImageFile } from '../maintenanceImage.utils'
 import { getVehicleById, VehicleRepositoryError } from '../../vehicles/vehicle.repository'
 import type { Vehicle } from '../../vehicles/vehicle.types'
 import type { MaintenanceRecord } from '../maintenance.types'
 import type { MaintenanceItemDefinition } from '../maintenanceItem.types'
+import type { MaintenanceImage } from '../maintenanceImage.types'
 import styles from './MaintenanceFormPage.module.css'
 
 export function EditMaintenancePage() {
@@ -21,6 +29,7 @@ export function EditMaintenancePage() {
   const [vehicle, setVehicle] = useState<Vehicle | null | undefined>(undefined)
   const [record, setRecord] = useState<MaintenanceRecord | null | undefined>(undefined)
   const [catalog, setCatalog] = useState<MaintenanceItemDefinition[] | undefined>(undefined)
+  const [images, setImages] = useState<MaintenanceImage[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -30,19 +39,26 @@ export function EditMaintenancePage() {
     }
 
     let cancelled = false
-    Promise.all([getVehicleById(vehicleId), getMaintenanceById(maintenanceId), getMaintenanceItemCatalog()])
-      .then(([vehicleResult, recordResult, catalogResult]) => {
+    Promise.all([
+      getVehicleById(vehicleId),
+      getMaintenanceById(maintenanceId),
+      getMaintenanceItemCatalog(),
+      getImagesByMaintenanceId(maintenanceId),
+    ])
+      .then(([vehicleResult, recordResult, catalogResult, imagesResult]) => {
         if (cancelled) return
         setVehicle(vehicleResult ?? null)
         setRecord(recordResult && recordResult.vehicleId === vehicleId ? recordResult : null)
         setCatalog(catalogResult)
+        setImages(imagesResult)
       })
       .catch((err) => {
         if (cancelled) return
         const message =
           err instanceof VehicleRepositoryError ||
           err instanceof MaintenanceRepositoryError ||
-          err instanceof MaintenanceItemCatalogRepositoryError
+          err instanceof MaintenanceItemCatalogRepositoryError ||
+          err instanceof MaintenanceImageRepositoryError
             ? err.message
             : 'Could not load this maintenance record.'
         setLoadError(message)
@@ -55,18 +71,50 @@ export function EditMaintenancePage() {
     }
   }, [vehicleId, maintenanceId])
 
+  async function handleDeleteExistingImage(imageId: string) {
+    await deleteImage(imageId)
+    setImages((prev) => prev.filter((image) => image.id !== imageId))
+  }
+
   async function handleSubmit(values: MaintenanceFormValues) {
     if (!record) return
     setSubmitError(null)
+
+    const { newImageFiles, ...recordValues } = values
+    let updatedRecord: MaintenanceRecord
     try {
-      await updateMaintenance({ ...record, ...values })
-      navigate(`/vehicles/${record.vehicleId}`, { replace: true })
+      updatedRecord = await updateMaintenance({ ...record, ...recordValues })
     } catch (err) {
       setSubmitError(
         err instanceof MaintenanceRepositoryError ? err.message : 'Could not update this maintenance record.',
       )
       throw err
     }
+
+    const failedFilenames: string[] = []
+    for (const file of newImageFiles) {
+      try {
+        const processed = await processImageFile(file)
+        await addImage({
+          maintenanceId: updatedRecord.id,
+          blob: processed.blob,
+          filename: file.name,
+          mimeType: processed.mimeType,
+          size: processed.size,
+        })
+      } catch {
+        failedFilenames.push(file.name)
+      }
+    }
+
+    if (failedFilenames.length > 0) {
+      setSubmitError(
+        `Changes saved, but ${failedFilenames.length} photo(s) could not be saved: ${failedFilenames.join(', ')}. You can try adding them again.`,
+      )
+      return
+    }
+
+    navigate(`/vehicles/${updatedRecord.vehicleId}`, { replace: true })
   }
 
   if (!vehicleId || !maintenanceId) {
@@ -107,6 +155,8 @@ export function EditMaintenancePage() {
         onSubmit={handleSubmit}
         onCancel={() => navigate(-1)}
         onAddCustomItemToCatalog={addCustomMaintenanceItemToCatalog}
+        existingImages={images}
+        onDeleteExistingImage={handleDeleteExistingImage}
       />
     </div>
   )

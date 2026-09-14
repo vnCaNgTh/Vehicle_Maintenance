@@ -51,6 +51,17 @@
   white-space: pre-wrap;
 }
 
+.photosSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.photosHeading {
+  margin: 0;
+  font-size: 1rem;
+}
+
 .itemsList {
   margin: 0;
   padding: 0;

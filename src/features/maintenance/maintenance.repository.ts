@@ -123,7 +123,12 @@ export async function updateMaintenance(record: MaintenanceRecord): Promise<Main
 
 export async function deleteMaintenance(id: string): Promise<void> {
   try {
-    await db.maintenanceRecords.delete(id)
+    // Cascade-delete any receipt photos with the record so the two never
+    // go out of sync, and orphaned image blobs never linger in IndexedDB.
+    await db.transaction('rw', db.maintenanceRecords, db.maintenanceImages, async () => {
+      await db.maintenanceRecords.delete(id)
+      await db.maintenanceImages.where('maintenanceId').equals(id).delete()
+    })
   } catch (error) {
     throw new MaintenanceRepositoryError('Could not delete this maintenance record.', error)
   }

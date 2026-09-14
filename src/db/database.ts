@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie'
 import type { Vehicle } from '../features/vehicles/vehicle.types'
 import type { MaintenanceRecord } from '../features/maintenance/maintenance.types'
 import type { MaintenanceItemDefinition } from '../features/maintenance/maintenanceItem.types'
+import type { MaintenanceImage } from '../features/maintenance/maintenanceImage.types'
 import { applyMigrations } from './migrations'
 
 /**
@@ -12,6 +13,7 @@ class MotorcycleCareDatabase extends Dexie {
   vehicles!: Table<Vehicle, string>
   maintenanceRecords!: Table<MaintenanceRecord, string>
   maintenanceItemDefinitions!: Table<MaintenanceItemDefinition, string>
+  maintenanceImages!: Table<MaintenanceImage, string>
 
   constructor() {
     super('motorcycleCare')

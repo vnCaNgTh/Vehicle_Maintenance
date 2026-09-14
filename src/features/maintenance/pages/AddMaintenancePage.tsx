@@ -9,6 +9,8 @@ import {
   getMaintenanceItemCatalog,
   MaintenanceItemCatalogRepositoryError,
 } from '../maintenanceItemCatalog.repository'
+import { addImage } from '../maintenanceImage.repository'
+import { processImageFile } from '../maintenanceImage.utils'
 import { getVehicleById, VehicleRepositoryError } from '../../vehicles/vehicle.repository'
 import type { Vehicle } from '../../vehicles/vehicle.types'
 import type { MaintenanceItemDefinition } from '../maintenanceItem.types'
@@ -52,13 +54,40 @@ export function AddMaintenancePage() {
   async function handleSubmit(values: MaintenanceFormValues) {
     if (!vehicle) return
     setSubmitError(null)
+
+    const { newImageFiles, ...recordValues } = values
+    let record
     try {
-      await createMaintenance({ vehicleId: vehicle.id, ...values })
-      navigate(`/vehicles/${vehicle.id}`, { replace: true })
+      record = await createMaintenance({ vehicleId: vehicle.id, ...recordValues })
     } catch (err) {
       setSubmitError(err instanceof MaintenanceRepositoryError ? err.message : 'Could not save this maintenance record.')
       throw err
     }
+
+    const failedFilenames: string[] = []
+    for (const file of newImageFiles) {
+      try {
+        const processed = await processImageFile(file)
+        await addImage({
+          maintenanceId: record.id,
+          blob: processed.blob,
+          filename: file.name,
+          mimeType: processed.mimeType,
+          size: processed.size,
+        })
+      } catch {
+        failedFilenames.push(file.name)
+      }
+    }
+
+    if (failedFilenames.length > 0) {
+      setSubmitError(
+        `Maintenance saved, but ${failedFilenames.length} photo(s) could not be saved: ${failedFilenames.join(', ')}. You can try adding them again from Edit.`,
+      )
+      return
+    }
+
+    navigate(`/vehicles/${vehicle.id}`, { replace: true })
   }
 
   if (!vehicleId) {

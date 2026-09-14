@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { LoadingState } from '../../../components/common/LoadingState'
 import { EmptyState } from '../../../components/common/EmptyState'
 import { ConfirmDialog } from '../../../components/common/ConfirmDialog'
 import { deleteMaintenance, getMaintenanceById, MaintenanceRepositoryError } from '../maintenance.repository'
 import { getVehicleById, VehicleRepositoryError } from '../../vehicles/vehicle.repository'
+import { getImagesByMaintenanceId, MaintenanceImageRepositoryError } from '../maintenanceImage.repository'
+import { MaintenanceImageGallery } from '../components/MaintenanceImageGallery'
 import type { Vehicle } from '../../vehicles/vehicle.types'
 import type { MaintenanceRecord } from '../maintenance.types'
+import type { MaintenanceImage } from '../maintenanceImage.types'
 import { formatCurrency, formatDate } from '../../../shared/format'
 import styles from './MaintenanceDetailPage.module.css'
 
@@ -15,6 +18,7 @@ export function MaintenanceDetailPage() {
   const navigate = useNavigate()
   const [vehicle, setVehicle] = useState<Vehicle | null | undefined>(undefined)
   const [record, setRecord] = useState<MaintenanceRecord | null | undefined>(undefined)
+  const [images, setImages] = useState<MaintenanceImage[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -25,16 +29,19 @@ export function MaintenanceDetailPage() {
     }
 
     let cancelled = false
-    Promise.all([getVehicleById(vehicleId), getMaintenanceById(maintenanceId)])
-      .then(([vehicleResult, recordResult]) => {
+    Promise.all([getVehicleById(vehicleId), getMaintenanceById(maintenanceId), getImagesByMaintenanceId(maintenanceId)])
+      .then(([vehicleResult, recordResult, imagesResult]) => {
         if (cancelled) return
         setVehicle(vehicleResult ?? null)
         setRecord(recordResult && recordResult.vehicleId === vehicleId ? recordResult : null)
+        setImages(imagesResult)
       })
       .catch((err) => {
         if (cancelled) return
         const message =
-          err instanceof VehicleRepositoryError || err instanceof MaintenanceRepositoryError
+          err instanceof VehicleRepositoryError ||
+          err instanceof MaintenanceRepositoryError ||
+          err instanceof MaintenanceImageRepositoryError
             ? err.message
             : 'Could not load this maintenance record.'
         setError(message)
@@ -59,6 +66,11 @@ export function MaintenanceDetailPage() {
       setIsConfirmOpen(false)
     }
   }
+
+  const galleryImages = useMemo(
+    () => images.map((image) => ({ id: image.id, blob: image.blob, filename: image.filename })),
+    [images],
+  )
 
   if (!vehicleId || !maintenanceId) {
     return <EmptyState title="Maintenance record not found" message="No maintenance ID was provided." />
@@ -140,6 +152,11 @@ export function MaintenanceDetailPage() {
           </div>
         )}
       </dl>
+
+      <div className={styles.photosSection}>
+        <h2 className={styles.photosHeading}>Receipt photos</h2>
+        <MaintenanceImageGallery images={galleryImages} emptyMessage="No receipt photos." />
+      </div>
 
       <div className={styles.actions}>
         <Link to={`/vehicles/${vehicleId}/maintenance/${record.id}/edit`} className={styles.editButton}>

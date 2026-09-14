@@ -1,9 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
 import type { Vehicle } from '../../vehicles/vehicle.types'
 import type { MaintenanceFormInput, MaintenanceRecord } from '../maintenance.types'
 import type { MaintenanceItemDefinition, MaintenanceRecordItem } from '../maintenanceItem.types'
+import type { MaintenanceImage } from '../maintenanceImage.types'
+import { isSupportedImageType } from '../maintenanceImage.utils'
 import { validateMaintenanceForm, type MaintenanceValidationErrors } from '../maintenance.validation'
 import { AddMaintenanceItemDialog, type CustomMaintenanceItemSubmission } from './AddMaintenanceItemDialog'
+import { MaintenanceImageGallery } from './MaintenanceImageGallery'
+import { ConfirmDialog } from '../../../components/common/ConfirmDialog'
 import styles from './MaintenanceForm.module.css'
 
 export interface MaintenanceFormValues {
@@ -12,6 +16,13 @@ export interface MaintenanceFormValues {
   description: string
   cost: number
   items: MaintenanceRecordItem[]
+  /** New photos the user picked in this session; not yet stored anywhere. */
+  newImageFiles: File[]
+}
+
+interface PendingImage {
+  id: string
+  file: File
 }
 
 interface MaintenanceFormProps {
@@ -26,6 +37,10 @@ interface MaintenanceFormProps {
     reminderEnabled: boolean
     intervalKm?: number
   }) => Promise<MaintenanceItemDefinition>
+  /** Photos already saved for this record (edit mode only). */
+  existingImages?: MaintenanceImage[]
+  /** Called immediately (not deferred to submit) when the user removes an already-saved photo. */
+  onDeleteExistingImage?: (imageId: string) => Promise<void>
 }
 
 function todayAsDateInputValue(): string {
@@ -57,6 +72,8 @@ export function MaintenanceForm({
   onSubmit,
   onCancel,
   onAddCustomItemToCatalog,
+  existingImages = [],
+  onDeleteExistingImage,
 }: MaintenanceFormProps) {
   const [input, setInput] = useState<MaintenanceFormInput>(() => toFormInput(initialRecord))
   const [localCatalog, setLocalCatalog] = useState<MaintenanceItemDefinition[]>(catalog)
@@ -65,6 +82,12 @@ export function MaintenanceForm({
   const [errors, setErrors] = useState<MaintenanceValidationErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [savedImages, setSavedImages] = useState<MaintenanceImage[]>(existingImages)
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
+  const [imageError, setImageError] = useState<string | null>(null)
+  const [imageToDelete, setImageToDelete] = useState<MaintenanceImage | null>(null)
+  const [isDeletingImage, setIsDeletingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function updateField<K extends keyof MaintenanceFormInput>(field: K, value: MaintenanceFormInput[K]) {
     setInput((prev) => ({ ...prev, [field]: value }))
@@ -89,6 +112,64 @@ export function MaintenanceForm({
 
   function removeExtraItem(itemId: string) {
     setSelectedItems((prev) => prev.filter((item) => item.itemId !== itemId))
+  }
+
+  function handleFilesSelected(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) {
+      return
+    }
+
+    const files = Array.from(fileList)
+    const accepted: PendingImage[] = []
+    let hasRejected = false
+
+    for (const file of files) {
+      if (isSupportedImageType(file.type)) {
+        accepted.push({ id: generateLocalItemId(), file })
+      } else {
+        hasRejected = true
+      }
+    }
+
+    setImageError(hasRejected ? 'Some files were skipped. Please choose JPEG, PNG, or WebP photos.' : null)
+    if (accepted.length > 0) {
+      setPendingImages((prev) => [...prev, ...accepted])
+    }
+  }
+
+  function removePendingImage(id: string) {
+    setPendingImages((prev) => prev.filter((image) => image.id !== id))
+  }
+
+  function requestDeleteExistingImage(id: string) {
+    const target = savedImages.find((image) => image.id === id)
+    if (target) {
+      setImageToDelete(target)
+    }
+  }
+
+  function handleRemoveGalleryImage(id: string) {
+    if (pendingImages.some((image) => image.id === id)) {
+      removePendingImage(id)
+      return
+    }
+    requestDeleteExistingImage(id)
+  }
+
+  async function handleConfirmDeleteImage() {
+    if (!imageToDelete || !onDeleteExistingImage) {
+      return
+    }
+    setIsDeletingImage(true)
+    try {
+      await onDeleteExistingImage(imageToDelete.id)
+      setSavedImages((prev) => prev.filter((image) => image.id !== imageToDelete.id))
+      setImageToDelete(null)
+    } catch {
+      setImageError('Could not delete this photo. Please try again.')
+    } finally {
+      setIsDeletingImage(false)
+    }
   }
 
   async function handleAddCustomItem(submission: CustomMaintenanceItemSubmission) {
@@ -126,7 +207,11 @@ export function MaintenanceForm({
 
     setIsSubmitting(true)
     try {
-      await onSubmit({ ...result.values, items: selectedItems })
+      await onSubmit({
+        ...result.values,
+        items: selectedItems,
+        newImageFiles: pendingImages.map((image) => image.file),
+      })
     } catch {
       setSubmitError('Something went wrong while saving. Please try again.')
     } finally {
@@ -136,6 +221,14 @@ export function MaintenanceForm({
 
   const extraSelectedItems = selectedItems.filter(
     (item) => !localCatalog.some((definition) => definition.id === item.itemId),
+  )
+
+  const galleryImages = useMemo(
+    () => [
+      ...savedImages.map((image) => ({ id: image.id, blob: image.blob, filename: image.filename })),
+      ...pendingImages.map((image) => ({ id: image.id, blob: image.file, filename: image.file.name })),
+    ],
+    [savedImages, pendingImages],
   )
 
   return (
@@ -257,6 +350,27 @@ export function MaintenanceForm({
 
       {submitError && <p className={styles.error}>{submitError}</p>}
 
+      <div className={styles.field}>
+        <span className={styles.fieldLabel}>Receipt photos</span>
+        <MaintenanceImageGallery images={galleryImages} onRemove={handleRemoveGalleryImage} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          className={styles.hiddenFileInput}
+          onChange={(event) => {
+            handleFilesSelected(event.target.files)
+            event.target.value = ''
+          }}
+        />
+        <button type="button" className={styles.addItemButton} onClick={() => fileInputRef.current?.click()}>
+          + Add photo
+        </button>
+        {imageError && <p className={styles.error}>{imageError}</p>}
+      </div>
+
       <div className={styles.actions}>
         {onCancel && (
           <button type="button" className={styles.secondaryButton} onClick={onCancel} disabled={isSubmitting}>
@@ -273,6 +387,16 @@ export function MaintenanceForm({
         open={isAddItemDialogOpen}
         onAdd={handleAddCustomItem}
         onClose={() => setIsAddItemDialogOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={imageToDelete !== null}
+        title="Delete this photo?"
+        message="This receipt photo will be removed from this device."
+        confirmLabel={isDeletingImage ? 'Deleting…' : 'Delete'}
+        cancelLabel="Cancel"
+        onConfirm={handleConfirmDeleteImage}
+        onCancel={() => setImageToDelete(null)}
       />
     </>
   )

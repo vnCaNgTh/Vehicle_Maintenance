@@ -101,6 +101,10 @@
   padding: 0.4rem 0;
 }
 
+.hiddenFileInput {
+  display: none;
+}
+
 .field input,
 .field textarea {
   padding: 0.65rem 0.85rem;

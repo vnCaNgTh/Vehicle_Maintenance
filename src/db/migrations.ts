@@ -28,4 +28,15 @@ export function applyMigrations(db: Dexie): void {
     maintenanceRecords: 'id, vehicleId, maintenanceDate, updatedAt',
     maintenanceItemDefinitions: 'id, isCustom',
   })
+
+  // v4 (M4): add local-only receipt/photo attachments. All prior stores and
+  // their index strings are unchanged, so existing vehicles, maintenance
+  // records, and the catalog are preserved automatically. Images are looked
+  // up by maintenanceId, so that's the only indexed field besides id.
+  db.version(4).stores({
+    vehicles: 'id, updatedAt',
+    maintenanceRecords: 'id, vehicleId, maintenanceDate, updatedAt',
+    maintenanceItemDefinitions: 'id, isCustom',
+    maintenanceImages: 'id, maintenanceId',
+  })
 }
