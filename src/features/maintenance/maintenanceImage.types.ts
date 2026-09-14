@@ -1,7 +1,7 @@
 /**
  * A single photo/receipt attachment stored locally for a maintenance
  * record. The image bytes live in IndexedDB as a Blob - nothing is ever
- * uploaded anywhere. Intentionally excluded from backup/restore (M5).
+ * uploaded anywhere. Included in the M5 local ZIP backup/restore.
  */
 export interface MaintenanceImage {
   id: string

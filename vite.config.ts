@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -6,12 +8,19 @@ import { VitePWA } from 'vite-plugin-pwa'
 // stays at '/' for local dev so `npm run dev` is unaffected.
 const REPO_BASE = '/Vehicle_Maintenance/'
 
+const packageJsonPath = fileURLToPath(new URL('./package.json', import.meta.url))
+const appVersion = (JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as { version: string }).version
+
 // https://vite.dev/config/
 export default defineConfig(({ command, isPreview }) => {
   const base = command === 'build' || isPreview ? REPO_BASE : '/'
 
   return {
     base,
+    // Exposed for the M5 backup manifest (see src/features/backup).
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion),
+    },
     plugins: [
       react(),
       VitePWA({
@@ -40,3 +49,4 @@ export default defineConfig(({ command, isPreview }) => {
     ],
   }
 })
+

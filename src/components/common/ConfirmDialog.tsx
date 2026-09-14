@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import styles from './ConfirmDialog.module.css'
 
 interface ConfirmDialogProps {
@@ -8,6 +9,8 @@ interface ConfirmDialogProps {
   cancelLabel?: string
   onConfirm: () => void
   onCancel: () => void
+  /** Optional extra content rendered between the message and the action buttons. */
+  children?: ReactNode
 }
 
 export function ConfirmDialog({
@@ -18,6 +21,7 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   onConfirm,
   onCancel,
+  children,
 }: ConfirmDialogProps) {
   if (!open) {
     return null
@@ -39,6 +43,7 @@ export function ConfirmDialog({
         <p id="confirm-dialog-message" className={styles.message}>
           {message}
         </p>
+        {children}
         <div className={styles.actions}>
           <button type="button" className={styles.cancelButton} onClick={onCancel}>
             {cancelLabel}
@@ -51,3 +56,4 @@ export function ConfirmDialog({
     </div>
   )
 }
+
