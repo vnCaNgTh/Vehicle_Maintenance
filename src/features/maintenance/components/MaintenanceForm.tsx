@@ -5,7 +5,6 @@ import type { MaintenanceItemDefinition, MaintenanceRecordItem } from '../mainte
 import type { MaintenanceImage } from '../maintenanceImage.types'
 import { isSupportedImageType } from '../maintenanceImage.utils'
 import { validateMaintenanceForm, type MaintenanceValidationErrors } from '../maintenance.validation'
-import { AddMaintenanceItemDialog, type CustomMaintenanceItemSubmission } from './AddMaintenanceItemDialog'
 import { MaintenanceImageGallery } from './MaintenanceImageGallery'
 import { ConfirmDialog } from '../../../components/common/ConfirmDialog'
 import styles from './MaintenanceForm.module.css'
@@ -32,11 +31,6 @@ interface MaintenanceFormProps {
   submitLabel: string
   onSubmit: (values: MaintenanceFormValues) => Promise<void> | void
   onCancel?: () => void
-  onAddCustomItemToCatalog?: (input: {
-    name: string
-    reminderEnabled: boolean
-    intervalKm?: number
-  }) => Promise<MaintenanceItemDefinition>
   /** Photos already saved for this record (edit mode only). */
   existingImages?: MaintenanceImage[]
   /** Called immediately (not deferred to submit) when the user removes an already-saved photo. */
@@ -71,14 +65,11 @@ export function MaintenanceForm({
   submitLabel,
   onSubmit,
   onCancel,
-  onAddCustomItemToCatalog,
   existingImages = [],
   onDeleteExistingImage,
 }: MaintenanceFormProps) {
   const [input, setInput] = useState<MaintenanceFormInput>(() => toFormInput(initialRecord))
-  const [localCatalog, setLocalCatalog] = useState<MaintenanceItemDefinition[]>(catalog)
   const [selectedItems, setSelectedItems] = useState<MaintenanceRecordItem[]>(() => initialRecord?.items ?? [])
-  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false)
   const [errors, setErrors] = useState<MaintenanceValidationErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -172,28 +163,6 @@ export function MaintenanceForm({
     }
   }
 
-  async function handleAddCustomItem(submission: CustomMaintenanceItemSubmission) {
-    let itemId = generateLocalItemId()
-    let name = submission.name
-    let reminderEnabled = submission.reminderEnabled
-    let intervalKm = submission.intervalKm
-
-    if (submission.saveToCatalog && onAddCustomItemToCatalog) {
-      const saved = await onAddCustomItemToCatalog({
-        name: submission.name,
-        reminderEnabled: submission.reminderEnabled,
-        intervalKm: submission.intervalKm,
-      })
-      itemId = saved.id
-      name = saved.name
-      reminderEnabled = saved.reminderEnabled
-      intervalKm = saved.intervalKm
-      setLocalCatalog((prev) => [...prev, saved])
-    }
-
-    setSelectedItems((prev) => [...prev, { itemId, name, reminderEnabled, intervalKm }])
-  }
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitError(null)
@@ -220,7 +189,7 @@ export function MaintenanceForm({
   }
 
   const extraSelectedItems = selectedItems.filter(
-    (item) => !localCatalog.some((definition) => definition.id === item.itemId),
+    (item) => !catalog.some((definition) => definition.id === item.itemId),
   )
 
   const galleryImages = useMemo(
@@ -277,44 +246,41 @@ export function MaintenanceForm({
 
       <div className={styles.field}>
         <span className={styles.fieldLabel}>Maintenance items</span>
-        <div className={styles.checklist}>
-          {localCatalog.map((definition) => {
-            const checked = selectedItems.some((item) => item.itemId === definition.id)
-            return (
-              <label key={definition.id} className={styles.checklistItem}>
-                <input type="checkbox" checked={checked} onChange={() => toggleCatalogItem(definition)} />
+        {catalog.length === 0 && extraSelectedItems.length === 0 ? (
+          <p className={styles.emptyCatalogHint}>
+            No maintenance items configured. Go to Settings → Maintenance Item Catalog to add maintenance items.
+          </p>
+        ) : (
+          <div className={styles.checklist}>
+            {catalog.map((definition) => {
+              const checked = selectedItems.some((item) => item.itemId === definition.id)
+              return (
+                <label key={definition.id} className={styles.checklistItem}>
+                  <input type="checkbox" checked={checked} onChange={() => toggleCatalogItem(definition)} />
+                  <span>
+                    <span className={styles.checklistItemName}>{definition.name}</span>
+                    {definition.reminderEnabled && definition.intervalKm !== undefined && (
+                      <span className={styles.checklistItemHint}>
+                        Every {definition.intervalKm.toLocaleString()} km
+                      </span>
+                    )}
+                  </span>
+                </label>
+              )
+            })}
+            {extraSelectedItems.map((item) => (
+              <label key={item.itemId} className={styles.checklistItem}>
+                <input type="checkbox" checked onChange={() => removeExtraItem(item.itemId)} />
                 <span>
-                  <span className={styles.checklistItemName}>{definition.name}</span>
-                  {definition.reminderEnabled && definition.intervalKm !== undefined && (
-                    <span className={styles.checklistItemHint}>
-                      Every {definition.intervalKm.toLocaleString()} km
-                    </span>
+                  <span className={styles.checklistItemName}>{item.name}</span>
+                  {item.reminderEnabled && item.intervalKm !== undefined && (
+                    <span className={styles.checklistItemHint}>Every {item.intervalKm.toLocaleString()} km</span>
                   )}
                 </span>
               </label>
-            )
-          })}
-          {extraSelectedItems.map((item) => (
-            <div key={item.itemId} className={styles.extraItem}>
-              <span>
-                <span className={styles.checklistItemName}>{item.name}</span>
-                {item.reminderEnabled && item.intervalKm !== undefined && (
-                  <span className={styles.checklistItemHint}>Every {item.intervalKm.toLocaleString()} km</span>
-                )}
-              </span>
-              <button
-                type="button"
-                className={styles.removeItemButton}
-                onClick={() => removeExtraItem(item.itemId)}
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-        </div>
-        <button type="button" className={styles.addItemButton} onClick={() => setIsAddItemDialogOpen(true)}>
-          + Add maintenance item
-        </button>
+            ))}
+          </div>
+        )}
         {errors.items && <p className={styles.error}>{errors.items}</p>}
       </div>
 
@@ -382,12 +348,6 @@ export function MaintenanceForm({
         </button>
       </div>
       </form>
-
-      <AddMaintenanceItemDialog
-        open={isAddItemDialogOpen}
-        onAdd={handleAddCustomItem}
-        onClose={() => setIsAddItemDialogOpen(false)}
-      />
 
       <ConfirmDialog
         open={imageToDelete !== null}

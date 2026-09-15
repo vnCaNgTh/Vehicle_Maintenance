@@ -9,6 +9,7 @@ import { VehicleDetailPage } from '../features/vehicles/pages/VehicleDetailPage'
 import { AddMaintenancePage } from '../features/maintenance/pages/AddMaintenancePage'
 import { EditMaintenancePage } from '../features/maintenance/pages/EditMaintenancePage'
 import { MaintenanceDetailPage } from '../features/maintenance/pages/MaintenanceDetailPage'
+import { MaintenanceCatalogPage } from '../features/maintenance/pages/MaintenanceCatalogPage'
 
 // Matches Vite's `base` so routing/links work under the GitHub Pages subpath.
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
@@ -28,6 +29,7 @@ export const router = createBrowserRouter(
         { path: 'vehicles/:vehicleId/maintenance/:maintenanceId', element: <MaintenanceDetailPage /> },
         { path: 'vehicles/:vehicleId/maintenance/:maintenanceId/edit', element: <EditMaintenancePage /> },
         { path: 'settings', element: <SettingsPage /> },
+        { path: 'settings/maintenance-catalog', element: <MaintenanceCatalogPage /> },
       ],
     },
   ],

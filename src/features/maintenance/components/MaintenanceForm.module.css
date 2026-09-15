@@ -57,8 +57,17 @@
   background: var(--color-surface);
 }
 
-.checklistItem input {
-  margin-top: 0.2rem;
+.checklistItem input[type='checkbox'] {
+  appearance: auto;
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  margin-top: 0.1rem;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  flex-shrink: 0;
 }
 
 .checklistItemName {
@@ -72,23 +81,13 @@
   color: var(--color-text-muted);
 }
 
-.extraItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.6rem 0.75rem;
+.emptyCatalogHint {
+  margin: 0;
+  padding: 0.75rem 1rem;
   border-radius: 12px;
   border: 1px dashed var(--color-border);
-  background: var(--color-surface-alt);
-}
-
-.removeItemButton {
-  border: none;
-  background: transparent;
-  color: var(--color-danger);
-  font-weight: 600;
-  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
 }
 
 .addItemButton {

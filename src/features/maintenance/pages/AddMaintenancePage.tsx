@@ -5,7 +5,6 @@ import { EmptyState } from '../../../components/common/EmptyState'
 import { MaintenanceForm, type MaintenanceFormValues } from '../components/MaintenanceForm'
 import { createMaintenance, MaintenanceRepositoryError } from '../maintenance.repository'
 import {
-  addCustomMaintenanceItemToCatalog,
   getMaintenanceItemCatalog,
   MaintenanceItemCatalogRepositoryError,
 } from '../maintenanceItemCatalog.repository'
@@ -117,7 +116,6 @@ export function AddMaintenancePage() {
         submitLabel="Add maintenance"
         onSubmit={handleSubmit}
         onCancel={() => navigate(-1)}
-        onAddCustomItemToCatalog={addCustomMaintenanceItemToCatalog}
       />
     </div>
   )

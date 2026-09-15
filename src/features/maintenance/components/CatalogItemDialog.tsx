@@ -3,47 +3,40 @@ import {
   validateCustomMaintenanceItemForm,
   type CustomMaintenanceItemValidationErrors,
 } from '../maintenanceItem.validation'
-import styles from './AddMaintenanceItemDialog.module.css'
+import type { MaintenanceItemDefinition } from '../maintenanceItem.types'
+import styles from './CatalogItemDialog.module.css'
 
-export interface CustomMaintenanceItemSubmission {
+export interface CatalogItemSubmission {
   name: string
   reminderEnabled: boolean
   intervalKm?: number
-  saveToCatalog: boolean
 }
 
-interface AddMaintenanceItemDialogProps {
+interface CatalogItemDialogProps {
   open: boolean
-  onAdd: (submission: CustomMaintenanceItemSubmission) => Promise<void> | void
+  /** When set, the dialog edits this item instead of creating a new one. */
+  initialItem?: MaintenanceItemDefinition | null
+  onSubmit: (submission: CatalogItemSubmission) => Promise<void> | void
   onClose: () => void
 }
 
-/** Small modal for creating a custom checklist item, styled like ConfirmDialog. */
-export function AddMaintenanceItemDialog({ open, onAdd, onClose }: AddMaintenanceItemDialogProps) {
-  const [name, setName] = useState('')
-  const [reminderEnabled, setReminderEnabled] = useState(false)
-  const [intervalKm, setIntervalKm] = useState<number | string>('')
-  const [saveToCatalog, setSaveToCatalog] = useState(false)
+/**
+ * Add/edit modal for a single Maintenance Item Catalog entry.
+ * Render with a fresh `key` (e.g. per open) so its form state resets
+ * naturally on remount instead of via an effect-driven reset.
+ */
+export function CatalogItemDialog({ open, initialItem, onSubmit, onClose }: CatalogItemDialogProps) {
+  const [name, setName] = useState(initialItem?.name ?? '')
+  const [reminderEnabled, setReminderEnabled] = useState(initialItem?.reminderEnabled ?? false)
+  const [intervalKm, setIntervalKm] = useState<number | string>(initialItem?.intervalKm ?? '')
   const [errors, setErrors] = useState<CustomMaintenanceItemValidationErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const isEditing = Boolean(initialItem)
+
   if (!open) {
     return null
-  }
-
-  function resetFields() {
-    setName('')
-    setReminderEnabled(false)
-    setIntervalKm('')
-    setSaveToCatalog(false)
-    setErrors({})
-    setSubmitError(null)
-  }
-
-  function handleClose() {
-    resetFields()
-    onClose()
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -59,48 +52,46 @@ export function AddMaintenanceItemDialog({ open, onAdd, onClose }: AddMaintenanc
 
     setIsSubmitting(true)
     try {
-      await onAdd({
+      await onSubmit({
         name: result.values.name,
         reminderEnabled: result.values.reminderEnabled,
         intervalKm: result.values.intervalKm,
-        saveToCatalog,
       })
-      resetFields()
       onClose()
     } catch {
-      setSubmitError('Could not add this item. Please try again.')
+      setSubmitError(isEditing ? 'Could not save these changes. Please try again.' : 'Could not add this item. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className={styles.overlay} role="presentation" onClick={handleClose}>
+    <div className={styles.overlay} role="presentation" onClick={onClose}>
       <form
         className={styles.dialog}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="add-item-dialog-title"
+        aria-labelledby="catalog-item-dialog-title"
         onClick={(event) => event.stopPropagation()}
         onSubmit={handleSubmit}
         noValidate
       >
-        <h2 id="add-item-dialog-title" className={styles.title}>
-          Add maintenance item
+        <h2 id="catalog-item-dialog-title" className={styles.title}>
+          {isEditing ? 'Edit maintenance item' : 'Add maintenance item'}
         </h2>
 
         <div className={styles.field}>
-          <label htmlFor="custom-item-name">Item name</label>
+          <label htmlFor="catalog-item-name">Item name</label>
           <input
-            id="custom-item-name"
+            id="catalog-item-name"
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
             aria-invalid={Boolean(errors.name)}
-            aria-describedby={errors.name ? 'custom-item-name-error' : undefined}
+            aria-describedby={errors.name ? 'catalog-item-name-error' : undefined}
           />
           {errors.name && (
-            <p id="custom-item-name-error" className={styles.error}>
+            <p id="catalog-item-name-error" className={styles.error}>
               {errors.name}
             </p>
           )}
@@ -112,7 +103,7 @@ export function AddMaintenanceItemDialog({ open, onAdd, onClose }: AddMaintenanc
             <label>
               <input
                 type="radio"
-                name="custom-item-reminder"
+                name="catalog-item-reminder"
                 checked={!reminderEnabled}
                 onChange={() => setReminderEnabled(false)}
               />
@@ -121,7 +112,7 @@ export function AddMaintenanceItemDialog({ open, onAdd, onClose }: AddMaintenanc
             <label>
               <input
                 type="radio"
-                name="custom-item-reminder"
+                name="catalog-item-reminder"
                 checked={reminderEnabled}
                 onChange={() => setReminderEnabled(true)}
               />
@@ -132,44 +123,33 @@ export function AddMaintenanceItemDialog({ open, onAdd, onClose }: AddMaintenanc
 
         {reminderEnabled && (
           <div className={styles.field}>
-            <label htmlFor="custom-item-interval">ODO interval (km)</label>
+            <label htmlFor="catalog-item-interval">ODO interval (km)</label>
             <input
-              id="custom-item-interval"
+              id="catalog-item-interval"
               type="number"
               inputMode="numeric"
               min={0}
               value={intervalKm}
               onChange={(event) => setIntervalKm(event.target.value)}
               aria-invalid={Boolean(errors.intervalKm)}
-              aria-describedby={errors.intervalKm ? 'custom-item-interval-error' : undefined}
+              aria-describedby={errors.intervalKm ? 'catalog-item-interval-error' : undefined}
             />
             {errors.intervalKm && (
-              <p id="custom-item-interval-error" className={styles.error}>
+              <p id="catalog-item-interval-error" className={styles.error}>
                 {errors.intervalKm}
               </p>
             )}
           </div>
         )}
 
-        <div className={styles.field}>
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={saveToCatalog}
-              onChange={(event) => setSaveToCatalog(event.target.checked)}
-            />
-            Save to default checklist
-          </label>
-        </div>
-
         {submitError && <p className={styles.error}>{submitError}</p>}
 
         <div className={styles.actions}>
-          <button type="button" className={styles.cancelButton} onClick={handleClose} disabled={isSubmitting}>
+          <button type="button" className={styles.cancelButton} onClick={onClose} disabled={isSubmitting}>
             Cancel
           </button>
           <button type="submit" className={styles.confirmButton} disabled={isSubmitting}>
-            {isSubmitting ? 'Adding…' : 'Add'}
+            {isSubmitting ? 'Saving…' : isEditing ? 'Save changes' : 'Add'}
           </button>
         </div>
       </form>

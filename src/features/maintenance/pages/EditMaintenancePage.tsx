@@ -5,7 +5,6 @@ import { EmptyState } from '../../../components/common/EmptyState'
 import { MaintenanceForm, type MaintenanceFormValues } from '../components/MaintenanceForm'
 import { getMaintenanceById, updateMaintenance, MaintenanceRepositoryError } from '../maintenance.repository'
 import {
-  addCustomMaintenanceItemToCatalog,
   getMaintenanceItemCatalog,
   MaintenanceItemCatalogRepositoryError,
 } from '../maintenanceItemCatalog.repository'
@@ -154,7 +153,6 @@ export function EditMaintenancePage() {
         submitLabel="Save changes"
         onSubmit={handleSubmit}
         onCancel={() => navigate(-1)}
-        onAddCustomItemToCatalog={addCustomMaintenanceItemToCatalog}
         existingImages={images}
         onDeleteExistingImage={handleDeleteExistingImage}
       />
