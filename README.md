@@ -1,6 +1,6 @@
-# Motorcycle Care
+# Vehicles Care
 
-A mobile-first Progressive Web App for tracking your own motorcycles' basic
+A mobile-first Progressive Web App for tracking your own vehicles' basic
 information. Built for personal, offline use — there is no backend, no
 account, and no cloud sync. All data lives on your device in IndexedDB.
 

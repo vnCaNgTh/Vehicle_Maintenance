@@ -27,9 +27,9 @@ export default defineConfig(({ command, isPreview }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg'],
         manifest: {
-          name: 'Motorcycle Care',
-          short_name: 'Motorcycle Care',
-          description: 'Personal motorcycle maintenance management, stored on this device.',
+          name: 'Vehicles Care',
+          short_name: 'Vehicles Care',
+          description: 'Personal vehicle maintenance management, stored on this device.',
           start_url: base,
           scope: base,
           display: 'standalone',

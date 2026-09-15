@@ -45,7 +45,7 @@ export function VehiclesPage() {
       {vehicles !== null && vehicles.length === 0 && (
         <EmptyState
           title="No vehicles yet"
-          message="Add your first motorcycle to start tracking it."
+          message="Add your first vehicle to start tracking it."
           action={
             <Link to="/vehicles/new" className={styles.addButton}>
               Add vehicle

@@ -27,7 +27,7 @@ export function validateBackupArchive(archive: ParsedBackupArchive): BackupValid
   const { manifest, vehicles, maintenanceRecords, maintenanceItemDefinitions, imageEntries, imageBlobs } = archive
 
   if (manifest.format !== BACKUP_FORMAT) {
-    errors.push('This file is not a Motorcycle Care backup.')
+    errors.push('This file is not a Vehicles Care backup.')
   }
   if (!SUPPORTED_BACKUP_FORMAT_VERSIONS.includes(manifest.formatVersion)) {
     errors.push(`This backup format (version ${manifest.formatVersion}) is not supported by this version of the app.`)

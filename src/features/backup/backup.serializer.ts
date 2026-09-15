@@ -32,7 +32,7 @@ export function buildBackupFilename(date = new Date()): string {
   const stamp =
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
     `-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
-  return `motorcycle-care-backup-${stamp}.zip`
+  return `vehicles-care-backup-${stamp}.zip`
 }
 
 export async function buildBackupZip(tables: RawBackupTables, appVersion: string): Promise<Blob> {

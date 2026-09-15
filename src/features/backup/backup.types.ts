@@ -2,7 +2,7 @@ import type { Vehicle } from '../vehicles/vehicle.types'
 import type { MaintenanceRecord } from '../maintenance/maintenance.types'
 import type { MaintenanceItemDefinition } from '../maintenance/maintenanceItem.types'
 
-export const BACKUP_FORMAT = 'motorcycle-care-backup' as const
+export const BACKUP_FORMAT = 'vehicles-care-backup' as const
 export const BACKUP_FORMAT_VERSION = 1
 export const SUPPORTED_BACKUP_FORMAT_VERSIONS: readonly number[] = [1]
 

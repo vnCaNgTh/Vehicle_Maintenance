@@ -9,7 +9,7 @@ import { applyMigrations } from './migrations'
  * Single Dexie database for the app. New feature tables (attachments,
  * backup) should be added via migrations.ts, not here.
  */
-class MotorcycleCareDatabase extends Dexie {
+class VehiclesCareDatabase extends Dexie {
   vehicles!: Table<Vehicle, string>
   maintenanceRecords!: Table<MaintenanceRecord, string>
   maintenanceItemDefinitions!: Table<MaintenanceItemDefinition, string>
@@ -21,4 +21,4 @@ class MotorcycleCareDatabase extends Dexie {
   }
 }
 
-export const db = new MotorcycleCareDatabase()
+export const db = new VehiclesCareDatabase()
