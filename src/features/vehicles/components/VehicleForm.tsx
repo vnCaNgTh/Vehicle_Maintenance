@@ -116,7 +116,7 @@ export function VehicleForm({ initialVehicle, submitLabel, onSubmit, onCancel }:
       </div>
 
       <div className={styles.field}>
-        <label htmlFor="currentOdometer">Current odometer (km)</label>
+        <label htmlFor="currentOdometer">Last maintenance odometer (km)</label>
         <input
           id="currentOdometer"
           type="number"

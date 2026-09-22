@@ -114,7 +114,7 @@ export function VehicleDetailPage() {
           <dd>{vehicle.engineNumber || '—'}</dd>
         </div>
         <div className={styles.row}>
-          <dt>Current odometer</dt>
+          <dt>Last maintenance odometer</dt>
           <dd>{vehicle.currentOdometer.toLocaleString()} km</dd>
         </div>
       </dl>
