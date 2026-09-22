@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { LoadingState } from '../../../components/common/LoadingState'
 import { EmptyState } from '../../../components/common/EmptyState'
@@ -7,6 +7,7 @@ import { deleteVehicle, getVehicleById, VehicleRepositoryError } from '../vehicl
 import type { Vehicle } from '../vehicle.types'
 import { getMaintenanceByVehicleId, MaintenanceRepositoryError } from '../../maintenance/maintenance.repository'
 import type { MaintenanceRecord } from '../../maintenance/maintenance.types'
+import { getNextMaintenanceReminders } from '../../maintenance/maintenanceReminder.utils'
 import { MaintenanceCard } from '../../maintenance/components/MaintenanceCard'
 import styles from './VehicleDetailPage.module.css'
 
@@ -63,6 +64,11 @@ export function VehicleDetailPage() {
       cancelled = true
     }
   }, [id, vehicle])
+
+  const nextMaintenanceReminders = useMemo(
+    () => getNextMaintenanceReminders(maintenanceRecords ?? []),
+    [maintenanceRecords],
+  )
 
   async function handleDelete() {
     if (!vehicle) return
@@ -127,6 +133,27 @@ export function VehicleDetailPage() {
           Delete
         </button>
       </div>
+
+      <section className={styles.maintenanceSection}>
+        <div className={styles.maintenanceHeader}>
+          <h2>Next maintenance</h2>
+        </div>
+
+        {maintenanceRecords !== null && nextMaintenanceReminders.length === 0 && (
+          <p>No upcoming reminders yet.</p>
+        )}
+
+        {nextMaintenanceReminders.length > 0 && (
+          <ul className={styles.reminderList}>
+            {nextMaintenanceReminders.map((reminder) => (
+              <li key={reminder.itemId} className={styles.reminderRow}>
+                <span className={styles.reminderName}>{reminder.name}</span>
+                <span className={styles.reminderOdo}>{reminder.nextOdo.toLocaleString()} km</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className={styles.maintenanceSection}>
         <div className={styles.maintenanceHeader}>

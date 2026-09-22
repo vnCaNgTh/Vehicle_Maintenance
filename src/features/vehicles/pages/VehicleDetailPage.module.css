@@ -123,6 +123,35 @@
   gap: 0.75rem;
 }
 
+.reminderList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.reminderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: var(--color-surface-alt);
+}
+
+.reminderName {
+  font-weight: 600;
+}
+
+.reminderOdo {
+  font-weight: 700;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
 .errorBanner {
   background: var(--color-danger-bg);
   color: var(--color-danger);
